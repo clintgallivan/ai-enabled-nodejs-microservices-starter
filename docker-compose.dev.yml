@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # Development overrides for main app
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - EMAIL_SERVICE_URL=http://email-service:3001
+    ports:
+      - "3000:3000"
+    command: npm run dev
+    
+  # Development overrides for email service  
+  email-service:
+    build:
+      context: ./microservices/email-service
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./microservices/email-service:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: npm run dev
+
+  # Development overrides for token cleanup
+  token-cleanup:
+    build:
+      context: ./microservices/token-cleanup  
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./microservices/token-cleanup:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: npm run dev
+
+  # Add development tools
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    depends_on:
+      - redis
+    networks:
+      - app-network

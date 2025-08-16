@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User accounts with authentication
+model users {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  password_hash  String
+  role           String   @default("user")  // "user" or "admin"
+  email_verified Boolean  @default(false)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+  
+  // Relations
+  auth_tokens auth_tokens[]
+  
+  @@map("users")
+}
+
+// Database-backed tokens for password reset and email verification
+model auth_tokens {
+  id         String   @id @default(cuid())
+  user_id    String
+  token_type String   // "password_reset" | "email_verify"
+  token_hash String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+  
+  // Relations
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  // Indexes for performance
+  @@index([user_id, token_type])
+  @@index([token_hash])
+  @@index([expires_at]) // For cleanup queries
+  
+  @@map("auth_tokens")
+}

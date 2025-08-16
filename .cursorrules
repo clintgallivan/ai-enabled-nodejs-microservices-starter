@@ -1,0 +1,138 @@
+# Node.js Microservices Starter - Auto-Context Rules
+
+## Context Files
+Always include the comprehensive project context from cursor_context.md when starting any conversation about this project.
+
+## Package Manager
+Always use yarn, never npm. All commands should reference yarn.
+
+## Code Style & Quality
+
+### TypeScript Standards
+- Use strict TypeScript with proper typing
+- Prefer interfaces over types for object shapes
+- Use absolute imports (configured in tsconfig.json)
+- Always use async/await instead of .then() chains
+- Use proper error handling with try/catch blocks
+
+### Code Formatting & Linting
+- **Prettier configured**: Automatically formats code with 2-space indents, semicolons, double quotes
+- **ESLint configured**: TypeScript-aware linting with security and best practice rules
+- **Run before committing**: yarn quality (type-check + lint + format check)
+- Use 2-space indentation
+- Use semicolons at end of statements  
+- Use double quotes for strings
+- Use trailing commas in arrays/objects
+- Keep lines under 100 characters when reasonable
+- Use camelCase for variables/functions, PascalCase for classes/interfaces
+
+### ESLint Disable Pattern
+- When lines get too long with inline comments, use `eslint-disable-next-line` above the target line
+- ❌ `const x: any = { // eslint-disable-line ...` (Prettier breaks this)  
+- ✅ `// eslint-disable-next-line @typescript-eslint/no-explicit-any -- reason`
+- ✅ `const x: any = {`
+
+### File Organization
+- Controllers: Handle HTTP requests, minimal business logic
+- Services: Contain business logic, database operations  
+- Middleware: Request processing, validation, auth
+- Utils: Pure functions, helpers, validators
+- One export per file for main functionality
+
+### Error Handling
+- Always use structured logging with Winston
+- Include user-friendly error messages for API responses
+- Log errors with relevant context (userId, email, etc.)
+- Use appropriate HTTP status codes (401, 403, 404, 409, 422, 500)
+- Don't expose internal errors to clients
+
+### Security Patterns
+- Never log passwords, tokens, or sensitive data
+- Always hash passwords with bcrypt
+- Validate all inputs with Zod schemas
+- Use parameterized queries (Prisma handles this)
+- Return generic success messages for password reset to prevent enumeration
+
+### Testing
+- Write tests for all controllers and services
+- Mock external dependencies (Redis, database, email service)
+- Test both success and error cases
+- Use descriptive test names that explain the scenario
+- Run tests with: yarn test
+
+## Architecture Patterns
+
+### Microservices
+This is a microservices project with:
+- Main API (src/) 
+- Email service microservice (microservices/email-service/)
+- Token cleanup microservice (microservices/token-cleanup/)
+
+### Authentication
+- JWT access tokens (15 minutes) + refresh tokens (7 days)
+- Database-backed password reset and email verification tokens
+- Fire-and-forget email processing via microservice
+- Session-based refresh token management
+
+### Database Patterns
+- Use Prisma for all database operations
+- Use transactions for multi-table operations
+- Generate migrations with descriptive names
+- Apply migrations per environment after deployments
+
+### Service Integration
+- Use emailQueueService for fire-and-forget emails
+- Use authTokenService for database-backed tokens
+- Use Redis for JWT blacklisting and Bull queues
+- Make HTTP calls between services, not direct database access
+
+## Common Fixes & Suggestions
+
+### When suggesting code changes:
+1. Fix any yarn vs npm references
+2. Use proper TypeScript types
+3. Follow existing error handling patterns
+4. Include proper logging statements
+5. Use absolute imports consistently
+6. Validate inputs with existing Zod schemas
+
+### When adding new features:
+1. Follow existing controller → service → database pattern
+2. Add proper error handling and logging
+3. Create or update Zod schemas for validation
+4. Update both CLAUDE.md and cursor_context.md
+5. Consider if new environment variables are needed
+6. Think about testing requirements
+
+### Performance Considerations
+- Use fire-and-forget for non-critical operations (emails)
+- Implement proper database indexes
+- Use Redis for caching when appropriate
+- Consider pagination for large data sets
+- Use connection pooling (Prisma handles this)
+
+## Railway Deployment
+- Main API: Use "GitHub Repo" option
+- Microservices: Use "Empty Service" → connect GitHub → set root directory
+- Set environment variables per service
+- Run migrations after deployments
+
+## Reference Files
+- cursor_context.md: Complete project documentation
+- CLAUDE.md: Claude Code equivalent (keep in sync)
+- .env.example: Environment variable reference
+- package.json: Available scripts and dependencies
+
+## Commands to Suggest
+- yarn dev: Start development server
+- yarn build: Build TypeScript
+- yarn test: Run Jest tests  
+- yarn lint: Run ESLint with auto-fix
+- yarn lint:check: Check linting without fixing
+- yarn format: Auto-format with Prettier
+- yarn format:check: Check formatting without fixing
+- yarn type-check: TypeScript type checking
+- yarn quality: Run all quality checks (type + lint + format)
+- yarn prisma generate: Generate client after schema changes
+- yarn migrate:dev: Apply development migrations
+- docker-compose up: Start all services locally

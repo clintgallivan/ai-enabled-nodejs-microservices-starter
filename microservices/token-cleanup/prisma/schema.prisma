@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model job_listings {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  job_url_id      String            @db.Uuid
+  external_id     String?
+  title           String
+  location        String?
+  description     String?
+  posted_at       DateTime?         @db.Timestamptz(6)
+  found_at        DateTime?         @default(now()) @db.Timestamptz(6)
+  is_active       Boolean?          @default(true)
+  job_urls        job_urls          @relation(fields: [job_url_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user_job_alerts user_job_alerts[]
+
+  @@unique([job_url_id, external_id])
+}
+
+model job_url_diffs {
+  id                                                                   String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  job_url_id                                                           String            @db.Uuid
+  newer_snapshot_id                                                    String            @unique(map: "unique_diff_per_snapshot") @db.Uuid
+  older_snapshot_id                                                    String            @db.Uuid
+  compared_at                                                          DateTime?         @default(now()) @db.Timestamptz(6)
+  ai_summary                                                           Json?
+  diff_html                                                            String?
+  ai_keywords_found                                                    String[]
+  job_urls                                                             job_urls          @relation(fields: [job_url_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  job_url_snapshots_job_url_diffs_newer_snapshot_idTojob_url_snapshots job_url_snapshots @relation("job_url_diffs_newer_snapshot_idTojob_url_snapshots", fields: [newer_snapshot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  job_url_snapshots_job_url_diffs_older_snapshot_idTojob_url_snapshots job_url_snapshots @relation("job_url_diffs_older_snapshot_idTojob_url_snapshots", fields: [older_snapshot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([job_url_id, compared_at(sort: Desc)], map: "idx_diffs_by_joburl")
+}
+
+model job_url_snapshots {
+  id                                                               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  job_url_id                                                       String          @db.Uuid
+  html                                                             String?
+  scraped_at                                                       DateTime?       @default(now()) @db.Timestamptz(6)
+  status_code                                                      Int?
+  error_message                                                    String?
+  job_url_diffs_job_url_diffs_newer_snapshot_idTojob_url_snapshots job_url_diffs?  @relation("job_url_diffs_newer_snapshot_idTojob_url_snapshots")
+  job_url_diffs_job_url_diffs_older_snapshot_idTojob_url_snapshots job_url_diffs[] @relation("job_url_diffs_older_snapshot_idTojob_url_snapshots")
+  job_urls                                                         job_urls        @relation(fields: [job_url_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([job_url_id, scraped_at(sort: Desc)], map: "idx_snapshots_by_joburl_and_time")
+}
+
+model job_urls {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  url               String              @unique
+  last_scraped_at   DateTime?           @db.Timestamptz(6)
+  created_at        DateTime?           @default(now()) @db.Timestamptz(6)
+  job_listings      job_listings[]
+  job_url_diffs     job_url_diffs[]
+  job_url_snapshots job_url_snapshots[]
+  user_job_trackers user_job_trackers[]
+}
+
+model user_job_alerts {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String       @db.Uuid
+  job_listing_id String       @db.Uuid
+  sent_at        DateTime?    @default(now()) @db.Timestamptz(6)
+  job_listings   job_listings @relation(fields: [job_listing_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          users        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, job_listing_id])
+}
+
+model user_job_trackers {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  job_url_id String    @db.Uuid
+  keywords   String[]
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  job_urls   job_urls  @relation(fields: [job_url_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, job_url_id])
+}
+
+model users {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email             String              @unique
+  password_hash     String
+  plan_tier         String              @default("free")
+  role              String              @default("user")
+  email_verified    Boolean             @default(false)
+  created_at        DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?           @updatedAt @db.Timestamptz(6)
+  
+  // Relations
+  auth_tokens       auth_tokens[]
+  user_job_alerts   user_job_alerts[]
+  user_job_trackers user_job_trackers[]
+}
+
+model auth_tokens {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String   @db.Uuid
+  token_type  String   // "password_reset", "email_verify"
+  token_hash  String   @unique
+  expires_at  DateTime @db.Timestamptz(6)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  
+  // Relations
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  // Indexes for performance
+  @@index([user_id, token_type])
+  @@index([token_hash])
+  @@index([expires_at]) // For cleanup queries
+}

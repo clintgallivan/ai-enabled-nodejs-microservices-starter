@@ -1,0 +1,15 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+*.log
+.git
+.gitignore
+README.md
+.DS_Store
+*.md
+coverage
+.nyc_output
+.vscode
+.idea

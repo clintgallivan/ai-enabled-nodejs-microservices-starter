@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+microservices/*/node_modules/
+
+# Build outputs
+dist/
+microservices/*/dist/
+
+# Generated files
+generated/
+coverage/
+
+# Logs
+logs/
+*.log
+
+# Environment files
+.env*
+
+# Lock files
+yarn.lock
+package-lock.json
+
+# Git
+.git/
+
+# Docker
+Dockerfile*
+
+# Documentation (preserve manual formatting)
+*.md
+
+# Config files that should maintain their format
+jest.config.js
